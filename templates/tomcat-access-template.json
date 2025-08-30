@@ -1,0 +1,53 @@
+PUT _index_template/tomcat-access-template
+{
+  "index_patterns": ["tomcat-access-*"],
+  "priority": 500,
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "codec": "best_compression"
+      }
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "service": { "properties": { "name": { "type": "keyword" } } },
+        "env": { "type": "keyword" },
+        "client": { "properties": { "ip": { "type": "ip" } } },
+
+        "http": {
+          "properties": {
+            "request": {
+              "properties": {
+                "method":  { "type": "keyword" },
+                "path":    { "type": "keyword" },
+                "version": { "type": "keyword" }
+              }
+            },
+            "response": {
+              "properties": {
+                "status_code": { "type": "integer" },
+                "bytes":       { "type": "long" },
+                "time_us":     { "type": "long" },
+                "time_ms":     { "type": "float" },
+                "time_s":      { "type": "float" }
+              }
+            }
+          }
+        },
+
+        "event": { "properties": { "outcome": { "type": "keyword" } } },
+
+        "url": {
+          "properties": {
+            "path":    { "type": "keyword" },
+            "section": { "type": "keyword" }
+          }
+        }
+      }
+    }
+  }
+}
