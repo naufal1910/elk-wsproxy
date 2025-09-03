@@ -1,0 +1,5 @@
+- pipeline.id: wsproxy-pipeline
+  path.config: "/usr/share/logstash/pipeline/wsproxy.conf"
+
+- pipeline.id: tomcat-pipeline
+  path.config: "/usr/share/logstash/pipeline/tomcat.conf"

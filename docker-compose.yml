@@ -1,24 +1,22 @@
-version: "3.8"
+version: "3.9"
+
+networks:
+  wsproxy-net:
+
+volumes:
+  logstash-data:
 
 services:
+  # OPTIONAL: pakai kalau belum punya ES/Kibana
   es-wsproxy:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
     container_name: es-wsproxy
     environment:
-      - node.name=es-wsproxy
       - discovery.type=single-node
-      - xpack.security.enabled=true
-      - xpack.security.http.ssl.enabled=false
-      - xpack.security.transport.ssl.enabled=false
-      - xpack.security.enrollment.enabled=false
-      - ELASTIC_PASSWORD=elastic123
-      - KIBANA_PASSWORD=kibana123
+      - xpack.security.enabled=false           # untuk dev termudah; jika true, isi user/pass di output Logstash
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
-      - indices.lifecycle.history_index_enabled=false
-    ports:
-      - "9200:9200"
-    volumes:
-      - esdata-wsproxy:/usr/share/elasticsearch/data
+
+    ports: ["9200:9200"]
     networks: [wsproxy-net]
 
   kibana-wsproxy:
@@ -27,44 +25,23 @@ services:
     depends_on: [es-wsproxy]
     environment:
       - ELASTICSEARCH_HOSTS=http://es-wsproxy:9200
-      - ELASTICSEARCH_USERNAME=kibana_system
-      - ELASTICSEARCH_PASSWORD=kibana123
-      - SERVER_PUBLICBASEURL=http://localhost:5601
-    ports:
-      - "5601:5601"
-    networks: [wsproxy-net]
-
-  # One-shot setup to install the index template
-  wsproxy-setup:
-    image: curlimages/curl:8.10.1
-    container_name: wsproxy-setup
-    depends_on: [es-wsproxy]
-    entrypoint: ["/bin/sh","-c"]
-    command: |
-      until curl -s -u elastic:elastic123 http://es-wsproxy:9200 >/dev/null; do echo 'waiting for es'; sleep 2; done;
-      curl -s -u elastic:elastic123 -H 'Content-Type: application/json' \
-        -X PUT http://es-wsproxy:9200/_index_template/wsproxy-template \
-        -d @/templates/wsproxy-template.json;
-      echo 'template installed'; sleep 1;
-    volumes:
-      - ./templates/wsproxy-template.json:/templates/wsproxy-template.json:ro
+    ports: ["5601:5601"]
     networks: [wsproxy-net]
 
   logstash-wsproxy:
     image: docker.elastic.co/logstash/logstash:8.14.0
     container_name: logstash-wsproxy
-    depends_on: [es-wsproxy, wsproxy-setup]
+    depends_on: [es-wsproxy]
     environment:
       - LS_JAVA_OPTS=-Xms512m -Xmx512m
       - XPACK_MONITORING_ENABLED=false
     volumes:
-      - ./logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-      - D:/opt/apache-tomcat-9.0.80_proxy/wsproxy_logs:/logs:ro
-      - D:/opt/apache-tomcat-9.0.80_proxy/logs:/tomcat-logs:ro
+      # mount multi-pipeline
+      - ./logstash/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
+      - ./logstash/pipeline/:/usr/share/logstash/pipeline:ro
+      # mount logs Windows (pakai tanda kutip biar aman di Windows path)
+      - "D:/opt/apache-tomcat-9.0.80_proxy/wsproxy_logs:/logs:ro"
+      - "D:/opt/apache-tomcat-9.0.80_proxy/logs:/tomcat-logs:ro"
+      # simpan state sincedb, queue dll
+      - logstash-data:/usr/share/logstash/data
     networks: [wsproxy-net]
-
-volumes:
-  esdata-wsproxy:
-
-networks:
-  wsproxy-net:
