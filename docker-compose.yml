@@ -42,6 +42,7 @@ services:
       # mount logs Windows (pakai tanda kutip biar aman di Windows path)
       - "D:/opt/apache-tomcat-9.0.80_proxy/wsproxy_logs:/logs:ro"
       - "D:/opt/apache-tomcat-9.0.80_proxy/logs:/tomcat-logs:ro"
+      - "D:/opt/hb-ws-sit/logs:/hb-ws-logs:ro"     # <-- NEW: HB-WS logs
       # simpan state sincedb, queue dll
       - logstash-data:/usr/share/logstash/data
     networks: [wsproxy-net]
